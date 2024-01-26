@@ -24,6 +24,7 @@ This list is ordered based on the input polling priority:
     path=mu3io.dll
     ```
 5. Run the game with `mu3hook.dll` injected into the `amdaemon.exe` or other loaders that the game uses.
+6. Once the game booted, enter operator/test menu and then recalibrate your lever (Normally, the range should be between 0000H and 8000H)
 
 ## Configuration
 
