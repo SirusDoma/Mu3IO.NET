@@ -24,11 +24,11 @@ This list is ordered based on the input polling priority:
     path=mu3io.dll
     ```
 5. Run the game with `mu3hook.dll` injected into the `amdaemon.exe` or other loaders that the game uses.
-6. Once the game booted, enter operator/test menu and then recalibrate your lever (Normally, the range should be between 0000H and 8000H)
+6. Once the game booted, enter operator/test menu and then recalibrate your lever (Normally, the range should be between `0000H` and `8000H`)
 
 ## Configuration
 
-Ensure you include `path=mu3io.dll` under the `[mu3io]` section in your segatools. 
+Ensure you include `path=mu3io.dll` under the `[mu3io]` section in your `segatools.ini`. 
 In addition, new input modes and configurations are available under the `[io4]` section.  
 
 Use the following template to configure the Mu3IO.NET:  
