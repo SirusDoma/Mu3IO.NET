@@ -49,17 +49,17 @@ keyboard=1  ; Enable buttons and lever emulation with keyboard. If mouse emulati
 ; Keyboard & Mouse bindings
 ; See the following link for complete list of virtual keycodes:
 ; https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-test=0x31       ; 1
-service=0x32    ; 2
-coin=0x33       ; 3
-left1=0x41      ; A
-left2=0x53	    ; S
-left3=0x44	    ; D
+test=0x31	; 1
+service=0x32	; 2
+coin=0x33	; 3
+left1=0x4	; A
+left2=0x53	; S
+left3=0x44	; D
 leftSide=0x01	; Mouse Left
 rightSide=0x02	; Mouse Right
-right1=0x4A     ; J
-right1=0x4B     ; K
-right3=0x4C	    ; L
+right1=0x4A	; J
+right1=0x4B	; K
+right3=0x4C	; L
 leftMenu=0x55	; U
 rightMenu=0x4F	; O
 
@@ -72,7 +72,8 @@ leverRight=0xA5	; Right ALT
 This project is compatible with both Visual Studio and Rider. `publish` the project to generate native `mu3io.dll`. 
 **DO NOT** use or distribute the managed dll produced by building the project/solution. It won't work!
 
-The `mu3hook.dll` is part of the segatools fork that can be found in here: https://github.com/SirusDoma/segatools/tree/mu3-gpio.
+The `mu3hook.dll` is part of the segatools fork that can be found in here:  
+https://github.com/SirusDoma/segatools/tree/mu3-gpio.
 
 ## Supporting other dedicated controllers
 
@@ -83,6 +84,10 @@ Additionally, you can implement the `WinUsb`, which provides out-of-the-box `Win
 
 > [!important]
 > This project and all dependent NuGet / 3rd party libraries are subject to [Native AOT limitation](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/?tabs=net8plus%2Cwindows#limitations-of-native-aot-deployment).
+
+## Credits
+
+Special thanks to [DJZMO](https://github.com/djzmo) for extensive testing and debugging assistance.
 
 ## License
 
