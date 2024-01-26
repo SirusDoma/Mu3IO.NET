@@ -1,0 +1,5 @@
+<Project>
+    <PropertyGroup>
+        <MSBuildProjectExtensionsPath>..\Temp\MU3IO\</MSBuildProjectExtensionsPath>
+    </PropertyGroup>
+</Project>

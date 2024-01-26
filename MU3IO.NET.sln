@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MU3IO", "Source\MU3IO.csproj", "{4B7EA257-0BDD-4D29-A20C-BE84D2F7AC21}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x64 = Release|x64
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4B7EA257-0BDD-4D29-A20C-BE84D2F7AC21}.Release|x64.ActiveCfg = Release|x64
+		{4B7EA257-0BDD-4D29-A20C-BE84D2F7AC21}.Release|x64.Build.0 = Release|x64
+		{4B7EA257-0BDD-4D29-A20C-BE84D2F7AC21}.Debug|x64.ActiveCfg = Debug|x64
+		{4B7EA257-0BDD-4D29-A20C-BE84D2F7AC21}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+EndGlobal
