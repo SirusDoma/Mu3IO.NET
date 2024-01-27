@@ -43,6 +43,7 @@ path=mu3io.dll
 ; Input modes
 ; Now all the generic controllers can be activated and deactivated individually with the following priority:
 ; Ontroller -> XInput -> Mouse (lever only) -> Keyboard.
+; All input are enabled by default, set 0 to disable the input.
 xinput=1    ; Enable buttons and lever emulation with XInput if connected. Otherwise fallback to Mouse for Lever and Keyboard for Buttons.
 mouse=1     ; Enable lever emulation with mouse. Disable to move the lever with keyboard.
 keyboard=1  ; Enable buttons and lever emulation with keyboard. If mouse emulation is enabled, lever from keyboard will be ignored.
