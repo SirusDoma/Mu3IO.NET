@@ -12,6 +12,8 @@ public sealed class Ontroller : WinUsb, IController
     public const ushort ProductId = 0x1216;
 
     private readonly byte[] _mu3LedState = new byte[33];
+    private readonly int _lever_min, _lever_max;
+    private readonly float _lever_absolute_center, _lever_range_center;
 
     public Ontroller(Device device)
         : base(device, VendorId, ProductId)
@@ -21,6 +23,11 @@ public sealed class Ontroller : WinUsb, IController
         _mu3LedState[1] = 0x4C;
         _mu3LedState[2] = 1;
         WriteOutputData(_mu3LedState, out _);
+
+        _lever_min = GetPrivateProfileInt("io4", "ontrollerLeverMin", 100, Mu3IO.ConfigFileName);
+        _lever_max = GetPrivateProfileInt("io4", "ontrollerLeverMax", 600, Mu3IO.ConfigFileName);
+        _lever_absolute_center = (_lever_max + _lever_min) / 2f; 
+        _lever_range_center = (_lever_max - _lever_min) / 2f;
 
         Logger.Debug($"Ontroller: Connected!");
     }
@@ -94,10 +101,15 @@ public sealed class Ontroller : WinUsb, IController
             OptionButtonsFlag |= 0x02;
 
         // Read the lever data
-        // The data fetched from WinUSB should be between 100 ~ 500 in big endian byte order
-        // The value might be goes out of the bound occasionally due to the nature of rotary encoder (e.g 99 or 502, etc)
-        ushort dataPosition      = Math.Clamp(BitConverter.ToUInt16([buffer[6], buffer[5]]), (ushort)100, (ushort)500);
-        float normalizedPosition = (dataPosition - 100) / 400f; // normalize the value between 0 ~ 1
+        ushort leverValue = BitConverter.ToUInt16([buffer[6], buffer[5]]);  
+        // Press both option buttons to log current lever value
+        if (OptionButtonsFlag == 3)
+            Logger.Debug($"Ontroller Lever Value: ({leverValue})");
+
+        // The data fetched from WinUSB should be between 100 ~ 600 in big endian byte order
+        // The value might be goes out of the bound occasionally due to the nature of rotary encoder (e.g 99 or 602, etc)
+        ushort dataPosition      = Math.Clamp(leverValue, (ushort)_lever_min, (ushort)_lever_max);
+        float normalizedPosition = (dataPosition - _lever_absolute_center) / _lever_range_center; // normalize the value between -1 ~ 1
         short mu3LeverPos        = (short)(short.MaxValue * normalizedPosition); // the upper-bound is short.MaxValue
 
         LeverPosition = mu3LeverPos;

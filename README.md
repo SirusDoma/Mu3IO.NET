@@ -48,6 +48,10 @@ xinput=1    ; Enable buttons and lever emulation with XInput if connected. Other
 mouse=1     ; Enable lever emulation with mouse. Disable to move the lever with keyboard.
 keyboard=1  ; Enable buttons and lever emulation with keyboard. If mouse emulation is enabled, lever from keyboard will be ignored.
 
+ontrollerLeverMin=100  ; Ontroller minimum lever value, press FN1+FN2 and move lever to the left to check your lever value in inject.exe terminal
+ontrollerLeverMax=600  ; Ontroller maximum lever value, press FN1+FN2 and move lever to the right to check your lever value in inject.exe terminal
+xinputAnalogLever=0    ; Use XInput left joystick as analog value
+
 ; Keyboard & Mouse bindings
 ; See the following link for complete list of virtual keycodes:
 ; https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
