@@ -7,11 +7,12 @@ namespace Mu3IO;
 
 public class XInput : IController
 {
-    private bool _enabled;
+    private bool _enabled, _xinputAnalogLever;
 
     public XInput()
     {
         _enabled = GetPrivateProfileInt("io4", "xinput", '1', Mu3IO.ConfigFileName) != 0;
+        _xinputAnalogLever = GetPrivateProfileInt("io4", "xinputAnalogLever", 0, Mu3IO.ConfigFileName) != 0;
         if (_enabled)
         {
             var errorCode = (WIN32_ERROR)XInputGetState(0, out _);
@@ -22,6 +23,26 @@ public class XInput : IController
             else
                 Logger.Debug($"{GetType().Name}: Failed to connect with the gamepad ({errorCode})");
         }
+    }
+
+    private void DigitalLever(XINPUT_STATE state)
+    {
+        if (Math.Abs(state.Gamepad.sThumbLX) > (short)XINPUT_GAMEPAD_BUTTON_FLAGS.XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+        {
+            LeverPosition += (short)(state.Gamepad.sThumbLX / 24);
+        }
+
+        if (Math.Abs(state.Gamepad.sThumbRX) > (short)XINPUT_GAMEPAD_BUTTON_FLAGS.XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+        {
+            LeverPosition += (short)(state.Gamepad.sThumbRX / 24);
+        }
+
+        LeverPosition -= (short)(state.Gamepad.bLeftTrigger * 64 + state.Gamepad.bRightTrigger * 64);
+    }
+
+    private void AnalogLever(XINPUT_STATE state)
+    {
+        LeverPosition = state.Gamepad.sThumbLX;
     }
 
     public bool Poll()
@@ -83,15 +104,12 @@ public class XInput : IController
         if ((buttonsFlag & (ushort)XINPUT_GAMEPAD_BUTTON_FLAGS.XINPUT_GAMEPAD_RIGHT_SHOULDER) > 0)
             RightGameButtonsFlag |= 0x08;
 
-        if (Math.Abs(state.Gamepad.sThumbLX) > (short)XINPUT_GAMEPAD_BUTTON_FLAGS.XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) {
-            LeverPosition += (short)(state.Gamepad.sThumbLX / 24);
-        }
 
-        if (Math.Abs(state.Gamepad.sThumbRX) > (short)XINPUT_GAMEPAD_BUTTON_FLAGS.XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) {
-            LeverPosition += (short)(state.Gamepad.sThumbRX / 24);
-        }
+        if (!_xinputAnalogLever)
+            DigitalLever(state);
+        else
+            AnalogLever(state);
 
-        LeverPosition -= (short)(state.Gamepad.bLeftTrigger * 64 + state.Gamepad.bRightTrigger * 64);
         return true;
     }
 
