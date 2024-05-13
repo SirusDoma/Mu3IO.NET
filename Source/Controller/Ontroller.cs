@@ -138,6 +138,16 @@ public sealed class Ontroller : WinUsb, IController
             _mu3LedState[3 * i + 4] = *(payload + (3 * i + 2)); // Green
         }
 
+        // Setting the left side LED to fixed purple for now
+        _mu3LedState[3 * 6 + 5] = 255; // Blue
+        _mu3LedState[3 * 6 + 3] = 255; // Red
+        _mu3LedState[3 * 6 + 4] = 0; // Green
+
+        // Setting the right side LED to fixed purple for now
+        _mu3LedState[3 * 9 + 5] = 255; // Blue
+        _mu3LedState[3 * 9 + 3] = 255; // Red
+        _mu3LedState[3 * 9 + 4] = 0; // Green
+
         return refreshLeds();
     }
 
