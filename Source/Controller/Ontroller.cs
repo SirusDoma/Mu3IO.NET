@@ -15,8 +15,6 @@ public sealed class Ontroller : WinUsb, IController
     private readonly int _lever_min, _lever_max;
     private readonly float _lever_absolute_center, _lever_range_center;
 
-    private Timer refreshLedsTimer;
-
     public Ontroller(Device device)
         : base(device, VendorId, ProductId)
     {
@@ -32,15 +30,6 @@ public sealed class Ontroller : WinUsb, IController
         _lever_range_center = (_lever_max - _lever_min) / 2f;
 
         Logger.Debug($"Ontroller: Connected!");
-
-        // Set up a timer to refresh the LEDs every second
-        refreshLedsTimer = new Timer((_) => refreshLeds(), null, 0, 2000);
-    }
-
-    public override void Dispose()
-    {
-        refreshLedsTimer.Dispose();
-        base.Dispose();
     }
 
     public override unsafe bool ReadInputData(out byte[] buffer, out int transferred)
@@ -124,6 +113,10 @@ public sealed class Ontroller : WinUsb, IController
         short mu3LeverPos        = (short)(short.MaxValue * normalizedPosition); // the upper-bound is short.MaxValue
 
         LeverPosition = mu3LeverPos;
+
+        // Let's refresh the LEDs each time we poll the controller
+        refreshLeds();
+
         return true;
     }
 
@@ -137,11 +130,12 @@ public sealed class Ontroller : WinUsb, IController
 
     public unsafe bool SetLeds(byte *payload)
     {
+        // Setting the middle 6 LEDs 
         for (int i = 0; i <= 5; i++)
         {
-            _mu3LedState[3 * i + 5] = *(payload + (3 * i));
-            _mu3LedState[3 * i + 3] = *(payload + (3 * i + 1));
-            _mu3LedState[3 * i + 4] = *(payload + (3 * i + 2));
+            _mu3LedState[3 * i + 5] = *(payload + (3 * i)); // Blue
+            _mu3LedState[3 * i + 3] = *(payload + (3 * i + 1)); // Red
+            _mu3LedState[3 * i + 4] = *(payload + (3 * i + 2)); // Green
         }
 
         return refreshLeds();

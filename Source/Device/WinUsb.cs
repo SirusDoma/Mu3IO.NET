@@ -61,7 +61,7 @@ public abstract class WinUsb : IDisposable
 
     public abstract bool WriteOutputData(byte[] buffer, out int transferred);
 
-    public virtual void Dispose()
+    public void Dispose()
     {
         GC.SuppressFinalize(this);
 
