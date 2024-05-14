@@ -83,13 +83,25 @@ public static class Mu3IO
         *pos = controller?.LeverPosition ?? short.MaxValue / 2; // fallback to center
     }
 
-    [UnmanagedCallersOnly(EntryPoint = "mu3_io_set_leds")]
-    public static unsafe int SetLeds(byte *payload)
+    [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_init")]
+    public static unsafe int InitLeds()
     {
         foreach (var controller in ControllerFactory.Enumerate())
         {
-            if (!controller.SetLeds(payload))
-                Logger.Debug($"IO: [mu3_io_poll] => ({controller.GetType().Name}) Failed to write the output data");
+            if (!controller.InitLeds())
+                Logger.Debug($"IO: [mu3_io_led_init] => ({controller.GetType().Name}) Failed to init the leds");
+        }
+
+        return HRESULT.S_OK;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_set_colors")]
+    public static unsafe int SetLeds(byte board, byte *rgb)
+    {
+        foreach (var controller in ControllerFactory.Enumerate())
+        {
+            if (!controller.SetLeds(board, rgb))
+                Logger.Debug($"IO: [mu3_io_led_set_colors] => ({controller.GetType().Name}) Failed to set the leds color");
         }
 
         return HRESULT.S_OK;

@@ -18,12 +18,6 @@ public sealed class Ontroller : WinUsb, IController
     public Ontroller(Device device)
         : base(device, VendorId, ProductId)
     {
-        // Not sure if this can be omitted
-        _mu3LedState[0] = 0x44;
-        _mu3LedState[1] = 0x4C;
-        _mu3LedState[2] = 1;
-        WriteOutputData(_mu3LedState, out _);
-
         _lever_min = GetPrivateProfileInt("io4", "ontrollerLeverMin", 100, Mu3IO.ConfigFileName);
         _lever_max = GetPrivateProfileInt("io4", "ontrollerLeverMax", 600, Mu3IO.ConfigFileName);
         _lever_absolute_center = (_lever_max + _lever_min) / 2f; 
@@ -128,25 +122,63 @@ public sealed class Ontroller : WinUsb, IController
 
     public short LeverPosition { get; private set; }
 
-    public unsafe bool SetLeds(byte *payload)
+    public bool InitLeds()
     {
-        // Setting the middle 6 LEDs 
-        for (int i = 0; i <= 5; i++)
+        // Not sure if this can be omitted
+        _mu3LedState[0] = 0x44;
+        _mu3LedState[1] = 0x4C;
+        _mu3LedState[2] = 1;
+
+        bool initLedsSuccessResult = WriteOutputData(_mu3LedState, out _);
+        return initLedsSuccessResult;
+    }
+
+    public unsafe bool SetLeds(byte board, byte* rgb)
+    {
+        // ; Data output a sequence of bytes, with JVS-like framing.
+        // ; Each "packet" starts with 0xE0 as a sync. To avoid E0 appearing elsewhere,
+        // ; 0xD0 is used as an escape character -- if you receive D0 in the output, ignore
+        // ; it and use the next sent byte plus one instead.
+        // ;
+        // ; After the sync is one byte for the board number that was updated, followed by
+        // ; the red, green and blue values for each LED.
+        // ;
+        // ; Board 0 has 61 LEDs:
+        // ;   [0]-[1]: left side button
+        // ;   [2]-[8]: left pillar lower LEDs
+        // ;   [9]-[17]: left pillar center LEDs
+        // ;   [18]-[24]: left pillar upper LEDs
+        // ;   [25]-[35]: billboard LEDs
+        // ;   [36]-[42]: right pillar upper LEDs
+        // ;   [43]-[51]: right pillar center LEDs
+        // ;   [52]-[58]: right pillar lower LEDs
+        // ;   [59]-[60]: right side button
+        // ;
+        // ; Board 1 has 6 LEDs:
+        // ;   [0]-[5]: 3 left and 3 right controller buttons
+
+        if (board == 1)
         {
-            _mu3LedState[3 * i + 5] = *(payload + (3 * i)); // Blue
-            _mu3LedState[3 * i + 3] = *(payload + (3 * i + 1)); // Red
-            _mu3LedState[3 * i + 4] = *(payload + (3 * i + 2)); // Green
+            // Setting the middle 6 LEDs 
+            for (int i = 0; i <= 5; i++)
+            {
+                _mu3LedState[3 * i + 3] = *(rgb + (3 * i + 1)); // Red
+                _mu3LedState[3 * i + 4] = *(rgb + (3 * i + 2)); // Green
+                _mu3LedState[3 * i + 5] = *(rgb + (3 * i)); // Blue
+            }
         }
+        else if (board == 0)
+        {
+            // Setting the left side LED to fixed purple for now TODO
+            _mu3LedState[3 * 0 + 3] = 255; // Red
+            _mu3LedState[3 * 0 + 4] = 0; // Green
+            _mu3LedState[3 * 0 + 5] = 255; // Blue
 
-        // Setting the left side LED to fixed purple for now
-        _mu3LedState[3 * 6 + 5] = 255; // Blue
-        _mu3LedState[3 * 6 + 3] = 255; // Red
-        _mu3LedState[3 * 6 + 4] = 0; // Green
-
-        // Setting the right side LED to fixed purple for now
-        _mu3LedState[3 * 9 + 5] = 255; // Blue
-        _mu3LedState[3 * 9 + 3] = 255; // Red
-        _mu3LedState[3 * 9 + 4] = 0; // Green
+            // Setting the right side LED to fixed purple for now TODO
+            _mu3LedState[3 * 59 + 3] = 255; // Red
+            _mu3LedState[3 * 59 + 4] = 0; // Green
+            _mu3LedState[3 * 59 + 5] = 255; // Blue
+        }
 
         return refreshLeds();
     }
