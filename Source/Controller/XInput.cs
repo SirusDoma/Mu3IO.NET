@@ -125,7 +125,7 @@ public class XInput : IController
         return true;
     }
 
-    public unsafe bool SetLeds(byte board, byte* rgb)
+    public bool SetLeds(int board, byte[] ledsColors)
     {
         // No-Op
         return true;

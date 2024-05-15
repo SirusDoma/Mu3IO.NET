@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using Windows.Win32.Foundation;
 
@@ -6,6 +8,13 @@ namespace Mu3IO;
 public static class Mu3IO
 {
     public const string ConfigFileName = ".\\segatools.ini";
+
+    private static NamedPipeServerStream? pipeServer;
+    private static StreamReader? pipeServerReader;
+    private static NamedPipeClientStream? pipeClient;
+    private static StreamWriter? pipeClientWriter;
+
+    private static bool isInitialized = false;
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_get_api_version")]
     public static ushort GetVersion()
@@ -16,20 +25,85 @@ public static class Mu3IO
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_init")]
     public static int Initialize()
     {
-        Logger.Debug($"IO: [mu3_io_init] => Initializing..");
+        if (isInitialized)
+            return HRESULT.S_OK;
 
-        // Register known controller (registration order matters, first come first serve (FIFO))
-        ControllerFactory.Register<Ontroller>(Ontroller.VendorId, Ontroller.ProductId);
-        ControllerFactory.Register<XInput>();
-        ControllerFactory.Register<Mouse>();
-        ControllerFactory.Register<Keyboard>();
+        isInitialized = true;
 
+        Logger.Debug($"IO: [mu3_io_init] => Initializing...");
         Logger.Debug($"IO: [mu3_io_init] => Hook initialized!");
+
+        //Let's get the name of the process that loaded us
+        var process = Process.GetCurrentProcess();
+        if (process.ProcessName == "amdaemon")
+        {
+            Logger.Debug($"IO: [mu3_io_init] => Loaded by amdaemon, initializing controller factory...");
+            InitControllerFactory();
+            InitNamedPipeServer();
+        }
+        else
+        {
+            Logger.Debug($"IO: [mu3_io_init] => Loaded by mu3, skipping controller factory initialization");
+            InitNamedPipeClient();
+        }
+
         return HRESULT.S_OK;
     }
 
+    public static void InitControllerFactory()
+    {
+        if (!ControllerFactory.Enumerate().Any())
+        {
+            // Register known controller (registration order matters, first come first serve (FIFO))
+            ControllerFactory.Register<Ontroller>(Ontroller.VendorId, Ontroller.ProductId);
+            ControllerFactory.Register<XInput>();
+            ControllerFactory.Register<Mouse>();
+            ControllerFactory.Register<Keyboard>();
+        }
+    }
+
+    private static void InitNamedPipeServer()
+    {
+        Logger.Debug($"IO: [initNamedPipeServer] => Starting named pipe server from amdeamon...");
+
+        pipeServer = new NamedPipeServerStream("Mu3IO.Net_Pipe");
+        Logger.Debug("IO: [NamedPipeServerStream] => Waiting for client connection...");
+
+        pipeServerReader = new StreamReader(pipeServer);
+        Task.Run(() =>
+        {
+            pipeServer?.WaitForConnection();
+            Logger.Debug("IO: [NamedPipeServerStream] => Client connected!");
+
+            string? readPayload;
+            while ((readPayload = pipeServerReader?.ReadLine()) != null)
+            {
+                //Logger.Debug($"IO: [NamedPipeServerStream] => Received: {line}");
+
+                if (readPayload == "InitLeds")
+                {
+                    InternalInitLeds();
+                }
+                else
+                {
+                    SetLeds(readPayload);
+                }
+            }
+        });
+    }
+
+    private static void InitNamedPipeClient()
+    {
+        Logger.Debug($"IO: [InitNamedPipeClient] => Starting named pipe client from mu3...");
+
+        pipeClient = new NamedPipeClientStream(".", "Mu3IO.Net_Pipe", PipeDirection.Out);
+        pipeClient.Connect();
+
+        pipeClientWriter = new StreamWriter(pipeClient) { AutoFlush = true };
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_poll")]
-    public static int Poll()
+    public static int Poll() // This is only called from amdaemon
     {
         foreach (var controller in ControllerFactory.Enumerate())
         {
@@ -48,7 +122,7 @@ public static class Mu3IO
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_get_opbtns")]
-    public static unsafe void GetOptionButtons(byte *opbtn)
+    public static unsafe void GetOptionButtons(byte* opbtn)
     {
         if (opbtn == null)
             return;
@@ -58,12 +132,12 @@ public static class Mu3IO
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_get_gamebtns")]
-    public static unsafe void GetGameButtons(byte *left, byte *right)
+    public static unsafe void GetGameButtons(byte* left, byte* right)
     {
         if (left != null)
         {
             var controller = ControllerFactory.Enumerate().FirstOrDefault((c) => c.LeftGameButtonsFlag != 0);
-            *left = controller?.LeftGameButtonsFlag ?? 0;;
+            *left = controller?.LeftGameButtonsFlag ?? 0; ;
         }
 
         if (right != null)
@@ -74,7 +148,7 @@ public static class Mu3IO
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_get_lever")]
-    public static unsafe void GetLeverPosition(short *pos)
+    public static unsafe void GetLeverPosition(short* pos)
     {
         if (pos == null)
             return;
@@ -86,6 +160,24 @@ public static class Mu3IO
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_init")]
     public static unsafe int InitLeds()
     {
+        Logger.Debug($"IO: [mu3_io_led_init] => Initializing leds...");
+
+        if (!ControllerFactory.Enumerate().Any())
+        {
+            pipeClientWriter?.WriteLine("InitLeds");
+        }
+        else
+        {
+            InternalInitLeds();
+        }
+
+        return HRESULT.S_OK;
+    }
+
+    private static int InternalInitLeds()
+    {
+        Logger.Debug($"IO: [InternalInitLeds] => Initializing leds...");
+
         foreach (var controller in ControllerFactory.Enumerate())
         {
             if (!controller.InitLeds())
@@ -96,12 +188,54 @@ public static class Mu3IO
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_set_colors")]
-    public static unsafe int SetLeds(byte board, byte *rgb)
+    public static unsafe int SetLeds(byte board, byte* rgb)
     {
+        if (board == 1)
+        {
+            Logger.Debug($"IO: [mu3_io_led_set_colors] => Setting leds color of board {board}...");
+        }
+
+        if (!ControllerFactory.Enumerate().Any())
+        {
+            //Logger.Debug($"IO: [mu3_io_led_set_colors] => No controller found to set the leds color so we forward it to the named pipe client...");
+
+            int ledsCount = (board == 0 ? 61 : 6);
+            String payloadArrayString = $"{board},";
+            for (int i = 0; i < ledsCount; i++)
+            {
+                payloadArrayString += $"{*(rgb + (3 * i))},{*(rgb + (3 * i + 1))},{*(rgb + (3 * i + 2))}";
+                if (i < ledsCount - 1)
+                    payloadArrayString += ",";
+            }
+
+            pipeClientWriter?.WriteLine(payloadArrayString);
+        }
+        else
+        {
+            //foreach (var controller in controllerfactory.enumerate())
+            //{
+            //    if (!controller.setleds(board, rgb))
+            //        logger.debug($"io: [mu3_io_led_set_colors] => ({controller.gettype().name}) failed to set the leds color");
+            //}
+        }
+
+        return HRESULT.S_OK;
+    }
+
+    public static unsafe int SetLeds(String payloadString)
+    {
+        //Logger.Debug($"IO: [SetLeds] => Setting leds color, payload: {payloadString}");
+        //Parse the payload to get the board and the RGB values
+
+        string[] splittedPayloadString = payloadString.Split(',');
+        byte[] payloadBytes = Array.ConvertAll(splittedPayloadString, byte.Parse);
+        int board = payloadBytes[0];
+        byte[] ledsColors = payloadBytes.Skip(1).ToArray();
+
         foreach (var controller in ControllerFactory.Enumerate())
         {
-            if (!controller.SetLeds(board, rgb))
-                Logger.Debug($"IO: [mu3_io_led_set_colors] => ({controller.GetType().Name}) Failed to set the leds color");
+            if (!controller.SetLeds(board, ledsColors))
+                Logger.Debug($"io: [mu3_io_led_set_colors] => ({controller.GetType().Name}) failed to set the leds color");
         }
 
         return HRESULT.S_OK;

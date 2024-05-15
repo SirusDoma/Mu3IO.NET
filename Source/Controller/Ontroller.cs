@@ -133,8 +133,10 @@ public sealed class Ontroller : WinUsb, IController
         return initLedsSuccessResult;
     }
 
-    public unsafe bool SetLeds(byte board, byte* rgb)
+    public bool SetLeds(int board, byte[] ledsColors)
     {
+        //Logger.Debug($"Ontroller: Setting leds color of board {board}...");
+
         // ; Data output a sequence of bytes, with JVS-like framing.
         // ; Each "packet" starts with 0xE0 as a sync. To avoid E0 appearing elsewhere,
         // ; 0xD0 is used as an escape character -- if you receive D0 in the output, ignore
@@ -162,22 +164,25 @@ public sealed class Ontroller : WinUsb, IController
             // Setting the middle 6 LEDs 
             for (int i = 0; i <= 5; i++)
             {
-                _mu3LedState[3 * i + 3] = *(rgb + (3 * i + 1)); // Red
-                _mu3LedState[3 * i + 4] = *(rgb + (3 * i + 2)); // Green
-                _mu3LedState[3 * i + 5] = *(rgb + (3 * i)); // Blue
+                _mu3LedState[3 * i + 3] = ledsColors[i * 3]; // Red
+                _mu3LedState[3 * i + 4] = ledsColors[i * 3 + 1]; // Green
+                _mu3LedState[3 * i + 5] = ledsColors[i * 3 + 2]; // Blue
             }
         }
-        else if (board == 0)
+        else
+        if (board == 0)
         {
-            // Setting the left side LED to fixed purple for now TODO
-            _mu3LedState[3 * 0 + 3] = 255; // Red
-            _mu3LedState[3 * 0 + 4] = 0; // Green
-            _mu3LedState[3 * 0 + 5] = 255; // Blue
+            //Setting the left side LED
 
-            // Setting the right side LED to fixed purple for now TODO
-            _mu3LedState[3 * 59 + 3] = 255; // Red
-            _mu3LedState[3 * 59 + 4] = 0; // Green
-            _mu3LedState[3 * 59 + 5] = 255; // Blue
+            _mu3LedState[3 * 6 + 3] = ledsColors[0]; // Red
+            _mu3LedState[3 * 6 + 4] = ledsColors[1]; // Green
+            _mu3LedState[3 * 6 + 5] = ledsColors[2]; // Blue
+
+            //Setting the right side LED
+
+            _mu3LedState[3 * 9 + 3] = ledsColors[61 * 3 - 3]; // Red
+            _mu3LedState[3 * 9 + 4] = ledsColors[61 * 3 - 2]; // Green
+            _mu3LedState[3 * 9 + 5] = ledsColors[61 * 3 - 1]; // Blue
         }
 
         return refreshLeds();

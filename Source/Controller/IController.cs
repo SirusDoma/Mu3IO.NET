@@ -16,5 +16,5 @@ public interface IController
 
     bool InitLeds();
 
-    unsafe bool SetLeds(byte board, byte* rgb); // Keep pointer to avoid copy
+    bool SetLeds(int board, byte[] ledsColors);
 }
