@@ -19,7 +19,7 @@ public static class Mu3IO
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_get_api_version")]
     public static ushort GetVersion()
     {
-        return 0x0110;
+        return 0x0101;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_init")]
@@ -78,8 +78,6 @@ public static class Mu3IO
             string? readPayload;
             while ((readPayload = pipeServerReader?.ReadLine()) != null)
             {
-                //Logger.Debug($"IO: [NamedPipeServerStream] => Received: {line}");
-
                 if (readPayload == "InitLeds")
                 {
                     InternalInitLeds();
@@ -160,8 +158,6 @@ public static class Mu3IO
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_init")]
     public static unsafe int InitLeds()
     {
-        Logger.Debug($"IO: [mu3_io_led_init] => Initializing leds...");
-
         if (!ControllerFactory.Enumerate().Any())
         {
             pipeClientWriter?.WriteLine("InitLeds");
@@ -190,33 +186,25 @@ public static class Mu3IO
     [UnmanagedCallersOnly(EntryPoint = "mu3_io_led_set_colors")]
     public static unsafe int SetLeds(byte board, byte* rgb)
     {
-        if (board == 1)
-        {
-            Logger.Debug($"IO: [mu3_io_led_set_colors] => Setting leds color of board {board}...");
-        }
+        int ledsCount = (board == 0 ? 61 : 6);
+        byte[] ledsColors = Enumerable.Range(0, ledsCount * 3)
+            .Select(i => *(rgb + i))
+            .ToArray();
 
         if (!ControllerFactory.Enumerate().Any())
         {
-            //Logger.Debug($"IO: [mu3_io_led_set_colors] => No controller found to set the leds color so we forward it to the named pipe client...");
+            //No controller found to set the leds color so we forward it to the named pipe client...
 
-            int ledsCount = (board == 0 ? 61 : 6);
-            String payloadArrayString = $"{board},";
-            for (int i = 0; i < ledsCount; i++)
-            {
-                payloadArrayString += $"{*(rgb + (3 * i))},{*(rgb + (3 * i + 1))},{*(rgb + (3 * i + 2))}";
-                if (i < ledsCount - 1)
-                    payloadArrayString += ",";
-            }
-
+            string payloadArrayString = $"{board}," + string.Join(",", ledsColors.Select(color => color.ToString()));
             pipeClientWriter?.WriteLine(payloadArrayString);
         }
         else
         {
-            //foreach (var controller in controllerfactory.enumerate())
-            //{
-            //    if (!controller.setleds(board, rgb))
-            //        logger.debug($"io: [mu3_io_led_set_colors] => ({controller.gettype().name}) failed to set the leds color");
-            //}
+            foreach (var controller in ControllerFactory.Enumerate())
+            {
+                if (!controller.SetLeds(board, ledsColors))
+                    Logger.Debug($"io: [mu3_io_led_set_colors] => ({controller.GetType().Name}) failed to set the leds color");
+            }
         }
 
         return HRESULT.S_OK;
@@ -224,9 +212,8 @@ public static class Mu3IO
 
     public static unsafe int SetLeds(String payloadString)
     {
-        //Logger.Debug($"IO: [SetLeds] => Setting leds color, payload: {payloadString}");
         //Parse the payload to get the board and the RGB values
-
+        
         string[] splittedPayloadString = payloadString.Split(',');
         byte[] payloadBytes = Array.ConvertAll(splittedPayloadString, byte.Parse);
         int board = payloadBytes[0];

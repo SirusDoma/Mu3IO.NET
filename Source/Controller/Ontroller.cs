@@ -135,30 +135,6 @@ public sealed class Ontroller : WinUsb, IController
 
     public bool SetLeds(int board, byte[] ledsColors)
     {
-        //Logger.Debug($"Ontroller: Setting leds color of board {board}...");
-
-        // ; Data output a sequence of bytes, with JVS-like framing.
-        // ; Each "packet" starts with 0xE0 as a sync. To avoid E0 appearing elsewhere,
-        // ; 0xD0 is used as an escape character -- if you receive D0 in the output, ignore
-        // ; it and use the next sent byte plus one instead.
-        // ;
-        // ; After the sync is one byte for the board number that was updated, followed by
-        // ; the red, green and blue values for each LED.
-        // ;
-        // ; Board 0 has 61 LEDs:
-        // ;   [0]-[1]: left side button
-        // ;   [2]-[8]: left pillar lower LEDs
-        // ;   [9]-[17]: left pillar center LEDs
-        // ;   [18]-[24]: left pillar upper LEDs
-        // ;   [25]-[35]: billboard LEDs
-        // ;   [36]-[42]: right pillar upper LEDs
-        // ;   [43]-[51]: right pillar center LEDs
-        // ;   [52]-[58]: right pillar lower LEDs
-        // ;   [59]-[60]: right side button
-        // ;
-        // ; Board 1 has 6 LEDs:
-        // ;   [0]-[5]: 3 left and 3 right controller buttons
-
         if (board == 1)
         {
             // Setting the middle 6 LEDs 
@@ -169,17 +145,14 @@ public sealed class Ontroller : WinUsb, IController
                 _mu3LedState[3 * i + 5] = ledsColors[i * 3 + 2]; // Blue
             }
         }
-        else
-        if (board == 0)
+        else if (board == 0)
         {
             //Setting the left side LED
-
             _mu3LedState[3 * 6 + 3] = ledsColors[0]; // Red
             _mu3LedState[3 * 6 + 4] = ledsColors[1]; // Green
             _mu3LedState[3 * 6 + 5] = ledsColors[2]; // Blue
 
             //Setting the right side LED
-
             _mu3LedState[3 * 9 + 3] = ledsColors[61 * 3 - 3]; // Red
             _mu3LedState[3 * 9 + 4] = ledsColors[61 * 3 - 2]; // Green
             _mu3LedState[3 * 9 + 5] = ledsColors[61 * 3 - 1]; // Blue
