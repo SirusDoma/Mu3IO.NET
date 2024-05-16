@@ -12,7 +12,7 @@ public sealed class Ontroller : WinUsb, IController
     public const ushort VendorId  = 0x0E8F;
     public const ushort ProductId = 0x1216;
 
-    private readonly object setLedslockObject = new object();
+    private int _pollCounter = 0;
     private readonly byte[] _mu3LedState = new byte[33];
     private readonly int _lever_min, _lever_max;
     private readonly float _lever_absolute_center, _lever_range_center;
@@ -110,6 +110,14 @@ public sealed class Ontroller : WinUsb, IController
 
         LeverPosition = mu3LeverPos;
 
+        // Increment the poll counter and refresh LEDs every 2 polls
+        _pollCounter++;
+        if (_pollCounter % 2 == 0)
+        {
+            _pollCounter = 0;
+            refreshLeds();
+        }
+
         return true;
     }
 
@@ -133,20 +141,16 @@ public sealed class Ontroller : WinUsb, IController
 
     public bool SetLeds(int board, byte[] ledsColors)
     {
-        lock (setLedslockObject)
+        if (board == 1)
         {
-            if (board == 1)
-            {
-                SetLedsRange(0, 6, ledsColors);
-            }
-            else if (board == 0)
-            {
-                SetLedColor(6, ledsColors[0], ledsColors[1], ledsColors[2]);
-                SetLedColor(9, ledsColors[61 * 3 - 3], ledsColors[61 * 3 - 2], ledsColors[61 * 3 - 1]);
-            }
-
-            return refreshLeds();
+            SetLedsRange(0, 6, ledsColors);
         }
+        else if (board == 0)
+        {
+            SetLedColor(6, ledsColors[0], ledsColors[1], ledsColors[2]);
+            SetLedColor(9, ledsColors[61 * 3 - 3], ledsColors[61 * 3 - 2], ledsColors[61 * 3 - 1]);
+        }
+        return true;
     }
 
     private void SetLedsRange(int startIndex, int count, byte[] ledsColors)
@@ -166,6 +170,8 @@ public sealed class Ontroller : WinUsb, IController
 
     public bool refreshLeds()
     {
+        String mu3LedStateString = BitConverter.ToString(_mu3LedState);
+        Logger.Debug($"Ontroller: Refreshing leds, _mu3LedState: " + mu3LedStateString);
         return WriteOutputData(_mu3LedState, out _);
     }
 }
