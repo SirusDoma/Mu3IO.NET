@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 using Windows.Win32.Foundation;
@@ -11,6 +12,7 @@ public sealed class Ontroller : WinUsb, IController
     public const ushort VendorId  = 0x0E8F;
     public const ushort ProductId = 0x1216;
 
+    private readonly object setLedslockObject = new object();
     private readonly byte[] _mu3LedState = new byte[33];
     private readonly int _lever_min, _lever_max;
     private readonly float _lever_absolute_center, _lever_range_center;
@@ -108,9 +110,6 @@ public sealed class Ontroller : WinUsb, IController
 
         LeverPosition = mu3LeverPos;
 
-        // Let's refresh the LEDs each time we poll the controller
-        refreshLeds();
-
         return true;
     }
 
@@ -135,30 +134,35 @@ public sealed class Ontroller : WinUsb, IController
 
     public bool SetLeds(int board, byte[] ledsColors)
     {
-        if (board == 1)
+        lock (setLedslockObject)
         {
-            // Setting the middle 6 LEDs 
-            for (int i = 0; i <= 5; i++)
+            if (board == 1)
             {
-                _mu3LedState[3 * i + 3] = ledsColors[i * 3]; // Red
-                _mu3LedState[3 * i + 4] = ledsColors[i * 3 + 1]; // Green
-                _mu3LedState[3 * i + 5] = ledsColors[i * 3 + 2]; // Blue
+                SetLedsRange(0, 6, ledsColors);
             }
+            else if (board == 0)
+            {
+                SetLedColor(6, ledsColors[0], ledsColors[1], ledsColors[2]);
+                SetLedColor(9, ledsColors[61 * 3 - 3], ledsColors[61 * 3 - 2], ledsColors[61 * 3 - 1]);
+            }
+
+            return refreshLeds();
         }
-        else if (board == 0)
+    }
+
+    private void SetLedsRange(int startIndex, int count, byte[] ledsColors)
+    {
+        for (int i = 0; i < count; i++)
         {
-            //Setting the left side LED
-            _mu3LedState[3 * 6 + 3] = ledsColors[0]; // Red
-            _mu3LedState[3 * 6 + 4] = ledsColors[1]; // Green
-            _mu3LedState[3 * 6 + 5] = ledsColors[2]; // Blue
-
-            //Setting the right side LED
-            _mu3LedState[3 * 9 + 3] = ledsColors[61 * 3 - 3]; // Red
-            _mu3LedState[3 * 9 + 4] = ledsColors[61 * 3 - 2]; // Green
-            _mu3LedState[3 * 9 + 5] = ledsColors[61 * 3 - 1]; // Blue
+            SetLedColor(startIndex + i, ledsColors[i * 3], ledsColors[i * 3 + 1], ledsColors[i * 3 + 2]);
         }
+    }
 
-        return refreshLeds();
+    private void SetLedColor(int index, byte red, byte green, byte blue)
+    {
+        _mu3LedState[3 * index + 3] = red;
+        _mu3LedState[3 * index + 4] = green;
+        _mu3LedState[3 * index + 5] = blue;
     }
 
     public bool refreshLeds()
