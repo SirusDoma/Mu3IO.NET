@@ -128,8 +128,7 @@ public sealed class Ontroller : WinUsb, IController
         _mu3LedState[1] = 0x4C;
         _mu3LedState[2] = 1;
 
-        bool initLedsSuccessResult = WriteOutputData(_mu3LedState, out _);
-        return initLedsSuccessResult;
+        return WriteOutputData(_mu3LedState, out _);
     }
 
     public bool SetLeds(int board, byte[] ledsColors)
