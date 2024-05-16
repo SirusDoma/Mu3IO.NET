@@ -31,7 +31,6 @@ public static class Mu3IO
         isInitialized = true;
 
         Logger.Debug($"IO: [mu3_io_init] => Initializing...");
-        Logger.Debug($"IO: [mu3_io_init] => Hook initialized!");
 
         //Let's get the name of the process that loaded us
         var process = Process.GetCurrentProcess();
@@ -46,6 +45,8 @@ public static class Mu3IO
             Logger.Debug($"IO: [mu3_io_init] => Loaded by mu3, skipping controller factory initialization");
             InitNamedPipeClient();
         }
+
+        Logger.Debug($"IO: [mu3_io_init] => Hook initialized!");
 
         return HRESULT.S_OK;
     }

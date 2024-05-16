@@ -171,7 +171,6 @@ public sealed class Ontroller : WinUsb, IController
     public bool refreshLeds()
     {
         String mu3LedStateString = BitConverter.ToString(_mu3LedState);
-        Logger.Debug($"Ontroller: Refreshing leds, _mu3LedState: " + mu3LedStateString);
         return WriteOutputData(_mu3LedState, out _);
     }
 }
