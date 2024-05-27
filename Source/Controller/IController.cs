@@ -14,5 +14,7 @@ public interface IController
 
     short LeverPosition { get; }
 
-    unsafe bool SetLeds(byte* payload); // Keep pointer to avoid copy
+    bool InitLeds();
+
+    bool SetLeds(int board, byte[] ledsColors);
 }

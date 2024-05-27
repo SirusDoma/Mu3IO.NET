@@ -119,7 +119,13 @@ public class XInput : IController
     public short LeverPosition { get; private set; }
     public bool LeverEnabled { get; private set; }
 
-    public unsafe bool SetLeds(byte* payload)
+    public bool InitLeds()
+    {
+        // No-Op
+        return true;
+    }
+
+    public bool SetLeds(int board, byte[] ledsColors)
     {
         // No-Op
         return true;

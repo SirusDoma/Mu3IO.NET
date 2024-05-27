@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 using Windows.Win32.Foundation;
@@ -11,6 +12,7 @@ public sealed class Ontroller : WinUsb, IController
     public const ushort VendorId  = 0x0E8F;
     public const ushort ProductId = 0x1216;
 
+    private int _pollCounter = 0;
     private readonly byte[] _mu3LedState = new byte[33];
     private readonly int _lever_min, _lever_max;
     private readonly float _lever_absolute_center, _lever_range_center;
@@ -18,12 +20,6 @@ public sealed class Ontroller : WinUsb, IController
     public Ontroller(Device device)
         : base(device, VendorId, ProductId)
     {
-        // Not sure if this can be omitted
-        _mu3LedState[0] = 0x44;
-        _mu3LedState[1] = 0x4C;
-        _mu3LedState[2] = 1;
-        WriteOutputData(_mu3LedState, out _);
-
         _lever_min = GetPrivateProfileInt("io4", "ontrollerLeverMin", 100, Mu3IO.ConfigFileName);
         _lever_max = GetPrivateProfileInt("io4", "ontrollerLeverMax", 600, Mu3IO.ConfigFileName);
         _lever_absolute_center = (_lever_max + _lever_min) / 2f; 
@@ -113,6 +109,15 @@ public sealed class Ontroller : WinUsb, IController
         short mu3LeverPos        = (short)(short.MaxValue * normalizedPosition); // the upper-bound is short.MaxValue
 
         LeverPosition = mu3LeverPos;
+
+        // Increment the poll counter and refresh LEDs every 2 polls
+        _pollCounter++;
+        if (_pollCounter % 2 == 0)
+        {
+            _pollCounter = 0;
+            refreshLeds();
+        }
+
         return true;
     }
 
@@ -124,15 +129,48 @@ public sealed class Ontroller : WinUsb, IController
 
     public short LeverPosition { get; private set; }
 
-    public unsafe bool SetLeds(byte *payload)
+    public bool InitLeds()
     {
-        for (int i = 0; i <= 5; i++)
-        {
-            _mu3LedState[3 * i + 5] = *(payload + (3 * i));
-            _mu3LedState[3 * i + 3] = *(payload + (3 * i + 1));
-            _mu3LedState[3 * i + 4] = *(payload + (3 * i + 2));
-        }
+        // Not sure if this can be omitted
+        _mu3LedState[0] = 0x44;
+        _mu3LedState[1] = 0x4C;
+        _mu3LedState[2] = 1;
 
+        return WriteOutputData(_mu3LedState, out _);
+    }
+
+    public bool SetLeds(int board, byte[] ledsColors)
+    {
+        if (board == 1)
+        {
+            SetLedsRange(0, 6, ledsColors);
+        }
+        else if (board == 0)
+        {
+            SetLedColor(6, ledsColors[0], ledsColors[1], ledsColors[2]);
+            SetLedColor(9, ledsColors[61 * 3 - 3], ledsColors[61 * 3 - 2], ledsColors[61 * 3 - 1]);
+        }
+        return true;
+    }
+
+    private void SetLedsRange(int startIndex, int count, byte[] ledsColors)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            SetLedColor(startIndex + i, ledsColors[i * 3], ledsColors[i * 3 + 1], ledsColors[i * 3 + 2]);
+        }
+    }
+
+    private void SetLedColor(int index, byte red, byte green, byte blue)
+    {
+        _mu3LedState[3 * index + 3] = red;
+        _mu3LedState[3 * index + 4] = green;
+        _mu3LedState[3 * index + 5] = blue;
+    }
+
+    public bool refreshLeds()
+    {
+        String mu3LedStateString = BitConverter.ToString(_mu3LedState);
         return WriteOutputData(_mu3LedState, out _);
     }
 }
