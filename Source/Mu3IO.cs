@@ -7,7 +7,7 @@ namespace Mu3IO;
 
 public static class Mu3IO
 {
-    public const string ConfigFileName = ".\\segatools.ini";
+    public static string? ConfigFileName { get; private set; }
 
     private static NamedPipeServerStream? pipeServer;
     private static StreamReader? pipeServerReader;
@@ -29,6 +29,8 @@ public static class Mu3IO
             return HRESULT.S_OK;
 
         isInitialized = true;
+
+        ConfigFileName = Environment.GetEnvironmentVariable("SEGATOOLS_CONFIG_PATH") ?? ".\\segatools.ini";
 
         Logger.Debug($"IO: [mu3_io_init] => Initializing...");
 
